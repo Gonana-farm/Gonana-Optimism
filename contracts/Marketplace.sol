@@ -35,41 +35,41 @@ contract Marketplace {
         _;
     }
 
-    function createProduct(string memory _productID, uint256 _amount) external {
-        require(products[_productID].seller == address(0), "Product already exists");
-        products[_productID] = Product(_productID, _amount, payable(msg.sender), ProductState.Listed);
-    }
+    // function createProduct(string memory _productID, uint256 _amount) external {
+    //     require(products[_productID].seller == address(0), "Product already exists");
+    //     products[_productID] = Product(_productID, _amount, payable(msg.sender), ProductState.Listed);
+    // }
 
-    function listProduct(string memory _productID) external onlySeller(_productID) {
-        require(products[_productID].state == ProductState.Listed, "Product is not listed");
-        products[_productID].state = ProductState.Escrowed;
-        emit ProductListed(_productID, products[_productID].amount, msg.sender);
-    }
+    // function listProduct(string memory _productID) external onlySeller(_productID) {
+    //     require(products[_productID].state == ProductState.Listed, "Product is not listed");
+    //     products[_productID].state = ProductState.Escrowed;
+    //     emit ProductListed(_productID, products[_productID].amount, msg.sender);
+    // }
 
-    function orderProduct(string memory _productID) external payable {
-        require(products[_productID].state == ProductState.Escrowed, "Product not available");
-        require(msg.value == products[_productID].amount, "Incorrect amount sent");
-        require(!orders[_productID].paid, "Order already placed");
+    // function orderProduct(string memory _productID) external payable {
+    //     require(products[_productID].state == ProductState.Escrowed, "Product not available");
+    //     require(msg.value == products[_productID].amount, "Incorrect amount sent");
+    //     require(!orders[_productID].paid, "Order already placed");
 
-        orders[_productID] = Order(_productID, msg.value, payable(msg.sender), true);
-        products[_productID].seller.transfer(msg.value); // Send amount to the seller
-        emit OrderPlaced(_productID, msg.value, msg.sender);
-    }
+    //     orders[_productID] = Order(_productID, msg.value, payable(msg.sender), true);
+    //     products[_productID].seller.transfer(msg.value); // Send amount to the seller
+    //     emit OrderPlaced(_productID, msg.value, msg.sender);
+    // }
 
-    function confirmOrder(string memory _productID) external onlySeller(_productID) {
-        require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
-        require(orders[_productID].paid, "No order placed");
+    // function confirmOrder(string memory _productID) external onlySeller(_productID) {
+    //     require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
+    //     require(orders[_productID].paid, "No order placed");
 
-        products[_productID].state = ProductState.Confirmed;
-        emit OrderConfirmed(_productID, orders[_productID].buyer);
-    }
+    //     products[_productID].state = ProductState.Confirmed;
+    //     emit OrderConfirmed(_productID, orders[_productID].buyer);
+    // }
 
-    function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
-        require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
-        require(orders[_productID].paid, "No order placed");
+    // function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
+    //     require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
+    //     require(orders[_productID].paid, "No order placed");
 
-        payable(msg.sender).transfer(orders[_productID].amount); // Refund the buyer
-        delete orders[_productID];
-        products[_productID].state = ProductState.Cancelled;
-    }
+    //     payable(msg.sender).transfer(orders[_productID].amount); // Refund the buyer
+    //     delete orders[_productID];
+    //     products[_productID].state = ProductState.Cancelled;
+    // }
 }
