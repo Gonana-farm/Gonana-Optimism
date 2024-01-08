@@ -94,20 +94,33 @@ contract Marketplace {
         emit OrderPlaced(_productID, _amount, msg.sender);
     } 
 
-    // function confirmOrder(string memory _productID) external onlySeller(_productID) {
-    //     require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
-    //     require(orders[_productID].paid, "No order placed");
+    function confirmOrder(string memory _productID) external onlySeller(_productID) {
+        require(products[_productID].state == ProductState.Escrowed, "Order not in escrow");
+        // require(orders[_productID].paid, "No order placed");
 
-    //     products[_productID].state = ProductState.Confirmed;
-    //     emit OrderConfirmed(_productID, orders[_productID].buyer);
-    // }
+        // logic to release funds in escrow account to seller
 
-    // function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
-    //     require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
-    //     require(orders[_productID].paid, "No order placed");
+        products[_productID].state = ProductState.Confirmed;
+        emit OrderConfirmed(_productID, orders[_productID].buyerAddress);
+    }
 
-    //     payable(msg.sender).transfer(orders[_productID].amount); // Refund the buyer
-    //     delete orders[_productID];
-    //     products[_productID].state = ProductState.Cancelled;
-    // }
+    function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
+        require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
+
+        // ensure funds are in escrow account
+        // require(orders[_productID].paid, "No order placed");
+
+        // Refund the buyer from escrow account
+        payable(msg.sender).transfer(orders[_productID].amount); 
+        delete orders[_productID];
+        products[_productID].state = ProductState.Cancelled;
+    }
+
+    function viewOrder(string memory _productID) external view returns (Order memory) {
+        return orders[_productID];
+    }
+
+    function viewProduct(string memory _productID) external view returns (Product memory) {
+        return products[_productID];
+    }
 }
