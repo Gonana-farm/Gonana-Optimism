@@ -62,6 +62,6 @@ describe('Marketplace Contract', function () {
     expect(product.state).to.equal(2); // Confirmed
   });
 
-  // More tests for other functionalities
+  // More tests for other functionalities 
 
 });
