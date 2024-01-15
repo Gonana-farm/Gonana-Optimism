@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+// import "GonaToken";
 
 contract StakingContract is Ownable {
     using SafeMath for uint256;
@@ -77,3 +78,7 @@ contract StakingContract is Ownable {
 }
 
 //improvements to come...
+//emergency withdraw...
+//custom errors
+//safemath
+//onlystakers mod
