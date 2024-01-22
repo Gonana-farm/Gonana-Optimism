@@ -2,6 +2,13 @@
 pragma solidity ^0.8.0;
 
 contract Marketplace {
+
+    error NotOwner();
+    error TransacationWasNotSuccessful();
+    error DepositDoesNotMatchAmount();
+
+    address private owner;
+
     enum ProductState { Listed, Escrowed, Confirmed, Cancelled }
 
     struct Product {
@@ -31,6 +38,11 @@ contract Marketplace {
     event OrderPlaced(string productID, uint256 amount, address buyer);
     event OrderConfirmed(string productID, address buyer);
 
+
+    constructor(){
+        owner = msg.sender;
+    }
+
     modifier onlySeller(string memory _productID) {
         require(products[_productID].wallet == msg.sender, "Only the seller can call this function");
         _;
@@ -41,24 +53,34 @@ contract Marketplace {
         _;
     }
 
+    modifier onlyOwner() {
+        if(msg.sender != owner){
+            revert NotOwner();
+        }
+        _;
+    }
+
+
     function createProduct(
         string memory _productID, 
         uint256 _amount,
-        string memory _merchantID
-    ) external {
+        string memory _merchantID,
+        address creator
+    ) external onlyOwner {
         require(products[_productID].wallet == address(0), "Product already exists");
-        products[_productID] = Product(_productID, _amount, payable(msg.sender), "", _merchantID, ProductState.Listed);
+        products[_productID] = Product(_productID, _amount, payable(creator), "", _merchantID, ProductState.Listed);
+        _listProduct(_productID,"");
     }
 
-    function listProduct(string memory _productID, string memory _hash) external onlySeller(_productID) {
-        require(products[_productID].state == ProductState.Listed, "Product cannot be relisted");
+    function _listProduct(string memory _productID, string memory _hash) internal {
+        //require(products[_productID].state == ProductState.Listed, "Product cannot be relisted");
         products[_productID].hash = _hash;
         products[_productID].state = ProductState.Listed;
         // emit ProductListed(_productID, products[_productID].amount, msg.sender);
         emit ProductListed(_productID, products[_productID].amount);
     }
 
-    function unlistProduct(string memory _productID) external onlySeller(_productID) {
+    function unlistProduct(string memory _productID) external onlyOwner {
         require(products[_productID].state == ProductState.Listed, "Product is not listed");
         products[_productID].state = ProductState.Cancelled;
         emit ProductUnlisted(_productID);
@@ -94,13 +116,18 @@ contract Marketplace {
         emit OrderPlaced(_productID, _amount, msg.sender);
     } 
 
-    function confirmOrder(string memory _productID) external onlySeller(_productID) {
+    function confirmOrder(string memory _productID) external onlyOwner {
         require(products[_productID].state == ProductState.Escrowed, "Order not in escrow");
         // require(orders[_productID].paid, "No order placed");
 
         // logic to release funds in escrow account to seller
 
         products[_productID].state = ProductState.Confirmed;
+        uint256 amount = products[_productID].amount;
+        (bool success,) = products[_productID].wallet.call{value:amount}("");
+        if (!success) {
+            revert TransacationWasNotSuccessful();
+        }
         emit OrderConfirmed(_productID, orders[_productID].buyerAddress);
     }
 
@@ -114,6 +141,12 @@ contract Marketplace {
         payable(msg.sender).transfer(orders[_productID].amount); 
         delete orders[_productID];
         products[_productID].state = ProductState.Cancelled;
+    }
+
+    function changeOwner(address _owner) public onlyOwner {
+        assembly {
+            sstore(0x00, _owner)
+        }
     }
 
     function viewOrder(string memory _productID) external view returns (Order memory) {
