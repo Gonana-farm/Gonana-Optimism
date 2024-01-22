@@ -38,18 +38,37 @@ contract Marketplace {
     event OrderPlaced(string productID, uint256 amount, address buyer);
     event OrderConfirmed(string productID, address buyer);
 
+    error ProductNotFound();
+    error ProductAlreadyExists();
+    error OrderNotFound();
+    error OrderAlreadyExists();
+    error InvalidProductState();
+    error InsufficientFunds();
+    error InvalidPrice();
+    // error NonceAlreadyUsed();
+    // error WrongContract();
+    error Expired();
+    error WrongFunctionCall();
+    error WrongSignature();
+
+    // modifier onlyProductState(string memory _productID, ProductState _requiredState) {
+    //     require(products[_productID].state == _requiredState, InvalidProductState());
+    //     _;
+    // }
+
+    //***** */ */
 
     constructor(){
         owner = msg.sender;
     }
 
     modifier onlySeller(string memory _productID) {
-        require(products[_productID].wallet == msg.sender, "Only the seller can call this function");
+        require(products[_productID].wallet == msg.sender, WrongSignature());
         _;
     }
 
     modifier onlyBuyer(string memory _productID) {
-        require(orders[_productID].buyerAddress == msg.sender, "Only the buyer can call this function");
+        require(orders[_productID].buyerAddress == msg.sender, WrongSignature());
         _;
     }
 
@@ -67,13 +86,13 @@ contract Marketplace {
         string memory _merchantID,
         address creator
     ) external onlyOwner {
-        require(products[_productID].wallet == address(0), "Product already exists");
+        require(products[_productID].wallet == address(0), ProductAlreadyExists());
         products[_productID] = Product(_productID, _amount, payable(creator), "", _merchantID, ProductState.Listed);
         _listProduct(_productID,"");
     }
 
     function _listProduct(string memory _productID, string memory _hash) internal {
-        //require(products[_productID].state == ProductState.Listed, "Product cannot be relisted");
+        //require(products[_productID].state == ProductState.Listed, InvalidProductState());
         products[_productID].hash = _hash;
         products[_productID].state = ProductState.Listed;
         // emit ProductListed(_productID, products[_productID].amount, msg.sender);
@@ -81,7 +100,7 @@ contract Marketplace {
     }
 
     function unlistProduct(string memory _productID) external onlyOwner {
-        require(products[_productID].state == ProductState.Listed, "Product is not listed");
+        require(products[_productID].state == ProductState.Listed, InvalidProductState());
         products[_productID].state = ProductState.Cancelled;
         emit ProductUnlisted(_productID);
     }
@@ -101,11 +120,12 @@ contract Marketplace {
         uint256 _amount,
         string memory _buyerID
     ) external payable {
-        require(products[_productID].state == ProductState.Listed, "Product not available");
+        require(products[_productID], ProductNotFound());
+        require(products[_productID].state == ProductState.Listed, InvalidProductState());
         // ensure the value inputed is same as the product amount listed
-        require(products[_productID].amount == _amount, "Incorrect amount");
+        require(products[_productID].amount == _amount, InvalidPrice());
         // ensure the value sent is the amount listed
-        require(msg.value == _amount, "Insufficient funds/Incorrect amount");
+        require(msg.value == _amount, InsufficientFunds());
 
         orders[_productID] = Order(_productID, _amount, msg.sender, _buyerID);
         products[_productID].state = ProductState.Escrowed;
@@ -117,7 +137,8 @@ contract Marketplace {
     } 
 
     function confirmOrder(string memory _productID) external onlyOwner {
-        require(products[_productID].state == ProductState.Escrowed, "Order not in escrow");
+        require(orders[_productID], OrderNotFound());
+        require(products[_productID].state == ProductState.Escrowed, InvalidProductState());
         // require(orders[_productID].paid, "No order placed");
 
         // logic to release funds in escrow account to seller
@@ -132,7 +153,8 @@ contract Marketplace {
     }
 
     function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
-        require(products[_productID].state == ProductState.Escrowed, "Product not in escrow");
+        require(orders[_productID], OrderNotFound);
+        require(products[_productID].state == ProductState.Escrowed, InvalidProductState());
 
         // ensure funds are in escrow account
         // require(orders[_productID].paid, "No order placed");
