@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import {  Errors } from "./utils/Errors.sol";
+import {IBlast} from "./utils/Iblast.sol";
 
 contract Marketplace {
 
-    error NotOwner();
-    error TransacationWasNotSuccessful();
-    error DepositDoesNotMatchAmount();
-
     address private owner;
+    IBlast immutable blast = IBlast(0x4300000000000000000000000000000000000002);
 
     enum ProductState { Listed, Escrowed, Confirmed, Cancelled }
 
@@ -38,18 +37,7 @@ contract Marketplace {
     event OrderPlaced(string productID, uint256 amount, address buyer);
     event OrderConfirmed(string productID, address buyer);
 
-    error ProductNotFound();
-    error ProductAlreadyExists();
-    error OrderNotFound();
-    error OrderAlreadyExists();
-    error InvalidProductState();
-    error InsufficientFunds();
-    error InvalidPrice();
-    // error NonceAlreadyUsed();
-    // error WrongContract();
-    error Expired();
-    error WrongFunctionCall();
-    error WrongSignature();
+   
 
     // modifier onlyProductState(string memory _productID, ProductState _requiredState) {
     //     require(products[_productID].state == _requiredState, InvalidProductState());
@@ -60,21 +48,28 @@ contract Marketplace {
 
     constructor(){
         owner = msg.sender;
+        IBlast(0x4300000000000000000000000000000000000002).configureClaimableGas();
+        IBlast(0x4300000000000000000000000000000000000002).configureGovernor(owner);
+
     }
 
     modifier onlySeller(string memory _productID) {
-        require(products[_productID].wallet == msg.sender, WrongSignature());
+        if (products[_productID].wallet == msg.sender){ 
+            revert Errors.WrongSignature();
+        }
         _;
     }
 
     modifier onlyBuyer(string memory _productID) {
-        require(orders[_productID].buyerAddress == msg.sender, WrongSignature());
+        if(orders[_productID].buyerAddress == msg.sender){ 
+            revert Errors.WrongSignature();
+        }
         _;
     }
 
     modifier onlyOwner() {
         if(msg.sender != owner){
-            revert NotOwner();
+            revert Errors.NotOwner();
         }
         _;
     }
@@ -86,7 +81,7 @@ contract Marketplace {
         string memory _merchantID,
         address creator
     ) external onlyOwner {
-        require(products[_productID].wallet == address(0), ProductAlreadyExists());
+        if(products[_productID].wallet == address(0)){ revert Errors.ProductAlreadyExists();}
         products[_productID] = Product(_productID, _amount, payable(creator), "", _merchantID, ProductState.Listed);
         _listProduct(_productID,"");
     }
@@ -100,7 +95,7 @@ contract Marketplace {
     }
 
     function unlistProduct(string memory _productID) external onlyOwner {
-        require(products[_productID].state == ProductState.Listed, InvalidProductState());
+        if(products[_productID].state == ProductState.Listed){ revert Errors.InvalidProductState();}
         products[_productID].state = ProductState.Cancelled;
         emit ProductUnlisted(_productID);
     }
@@ -120,12 +115,12 @@ contract Marketplace {
         uint256 _amount,
         string memory _buyerID
     ) external payable {
-        require(products[_productID], ProductNotFound());
-        require(products[_productID].state == ProductState.Listed, InvalidProductState());
+        //require(products[_productID], Errors.ProductNotFound());
+        if(products[_productID].state == ProductState.Listed) {revert Errors.InvalidProductState();}
         // ensure the value inputed is same as the product amount listed
-        require(products[_productID].amount == _amount, InvalidPrice());
+        if(products[_productID].amount == _amount){ revert Errors.InvalidPrice();}
         // ensure the value sent is the amount listed
-        require(msg.value == _amount, InsufficientFunds());
+        if(msg.value == _amount){ revert Errors.InsufficientFunds();}
 
         orders[_productID] = Order(_productID, _amount, msg.sender, _buyerID);
         products[_productID].state = ProductState.Escrowed;
@@ -137,9 +132,9 @@ contract Marketplace {
     } 
 
     function confirmOrder(string memory _productID) external onlyOwner {
-        require(orders[_productID], OrderNotFound());
-        require(products[_productID].state == ProductState.Escrowed, InvalidProductState());
-        // require(orders[_productID].paid, "No order placed");
+        //require(orders[_productID], Errors.OrderNotFound());
+        if(products[_productID].state == ProductState.Escrowed) {revert Errors.InvalidProductState();}
+        //require(orders[_productID].paid, "No order placed");
 
         // logic to release funds in escrow account to seller
 
@@ -147,14 +142,14 @@ contract Marketplace {
         uint256 amount = products[_productID].amount;
         (bool success,) = products[_productID].wallet.call{value:amount}("");
         if (!success) {
-            revert TransacationWasNotSuccessful();
+            revert Errors.TransacationWasNotSuccessful();
         }
         emit OrderConfirmed(_productID, orders[_productID].buyerAddress);
     }
 
     function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
-        require(orders[_productID], OrderNotFound);
-        require(products[_productID].state == ProductState.Escrowed, InvalidProductState());
+        //require(orders[_productID],  Errors.OrderNotFound);
+        if(products[_productID].state == ProductState.Escrowed) {revert Errors.InvalidProductState();}
 
         // ensure funds are in escrow account
         // require(orders[_productID].paid, "No order placed");
@@ -178,4 +173,13 @@ contract Marketplace {
     function viewProduct(string memory _productID) external view returns (Product memory) {
         return products[_productID];
     }
+    function claimAllGas() external onlyOwner {
+	    // This function is public meaning anyone can claim the gas
+		blast.claimAllGas(address(this), owner );
+    }
+    
+    function checkGasDue()external view returns (uint amount){
+        (,amount,,) = blast.readGasParams(address(this));
+    }
+
 }
