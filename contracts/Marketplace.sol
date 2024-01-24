@@ -27,8 +27,16 @@ contract Marketplace {
         // bool paid;
     }
 
+    struct Redeem {
+        address id;
+        uint256 gas;
+    }
+
     mapping(string => Product) public products;
     mapping(string => Order) public orders;
+    mapping(address => uint256) public gasSpent;
+
+    Redeem[] claims ;
 
     event ProductCreated(string productID, uint256 amount, address indexed seller);
     // event ProductListed(string productID, uint256 amount, address seller);
@@ -36,6 +44,7 @@ contract Marketplace {
     event ProductUnlisted(string productID);
     event OrderPlaced(string productID, uint256 amount, address buyer);
     event OrderConfirmed(string productID, address buyer);
+    event GasClaimed(uint256 indexed time, uint256 indexed amount);
 
    
 
@@ -124,11 +133,12 @@ contract Marketplace {
 
         orders[_productID] = Order(_productID, _amount, msg.sender, _buyerID);
         products[_productID].state = ProductState.Escrowed;
-
         // escrow logic to hold funds until confirmed 
         //(transfer funds from the buyer to escrow account)
-
+        gasSpent[msg.sender] = tx.gasprice;
         emit OrderPlaced(_productID, _amount, msg.sender);
+        uint amount = claimAllGas();
+        emit GasClaimed(block.timestamp, amount);
     } 
 
     function confirmOrder(string memory _productID) external onlyOwner {
@@ -173,11 +183,25 @@ contract Marketplace {
     function viewProduct(string memory _productID) external view returns (Product memory) {
         return products[_productID];
     }
-    function claimAllGas() external onlyOwner {
+
+    function claimAllGas() public returns(uint amount) {
 	    // This function is public meaning anyone can claim the gas
-		blast.claimAllGas(address(this), owner );
+		amount = blast.claimAllGas(address(this), address(this));
+
     }
     
+    function redeemGas(address caller) external returns(bool sent) {
+        if(gasSpent[caller] == 0 ){
+            revert Errors.DoNotHaveGasSpent();
+        }
+        claimAllGas();
+        uint256 amountDue = gasSpent[caller];
+        gasSpent[caller] = 0;
+        (sent,) = caller.call{value:amountDue}("");
+        if (!sent){revert Errors.TransacationWasNotSuccessful();}
+
+    }
+
     function checkGasDue()external view returns (uint amount){
         (,amount,,) = blast.readGasParams(address(this));
     }
