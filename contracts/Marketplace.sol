@@ -58,7 +58,7 @@ contract Marketplace {
     constructor(){
         owner = msg.sender;
         IBlast(0x4300000000000000000000000000000000000002).configureClaimableGas();
-        IBlast(0x4300000000000000000000000000000000000002).configureGovernor(owner);
+        IBlast(0x4300000000000000000000000000000000000002).configureGovernor(address(this));
 
     }
 
@@ -191,14 +191,16 @@ contract Marketplace {
     }
     
     function redeemGas(address caller) external returns(bool sent) {
-        if(gasSpent[caller] == 0 ){
+        if (gasSpent[caller] == 0 ) {
             revert Errors.DoNotHaveGasSpent();
         }
         claimAllGas();
         uint256 amountDue = gasSpent[caller];
         gasSpent[caller] = 0;
         (sent,) = caller.call{value:amountDue}("");
-        if (!sent){revert Errors.TransacationWasNotSuccessful();}
+        if (!sent) {
+            revert Errors.TransacationWasNotSuccessful();
+        }
 
     }
 
