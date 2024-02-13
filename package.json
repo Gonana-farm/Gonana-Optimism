@@ -1,26 +1,29 @@
 {
-  "name": "hardhat-project",
+  "name": "assets-nft",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
   "devDependencies": {
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.3",
-    "@nomicfoundation/hardhat-ethers": "^3.0.5",
-    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "@nomicfoundation/hardhat-verify": "^2.0.3",
-    "@typechain/ethers-v6": "^0.5.1",
-    "@typechain/hardhat": "^9.1.0",
-    "@types/chai": "^4.3.11",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "^20.10.7",
-    "chai": "^4.4.0",
-    "ethers": "^6.9.2",
-    "hardhat": "^2.19.4",
+    "@ethersproject/abi": "^5.4.7",
+    "@ethersproject/providers": "^5.4.7",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-etherscan": "^3.1.5",
+    "@typechain/ethers-v5": "^10.1.0",
+    "@typechain/hardhat": "^6.1.2",
+    "chai": "^4.2.0",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.4.7",
+    "hardhat": "^2.15.0",
     "hardhat-gas-reporter": "^1.0.9",
-    "solidity-coverage": "^0.8.5",
-    "ts-node": "^10.9.2",
-    "typechain": "^8.3.2",
-    "typescript": "^5.3.3"
+    "solidity-coverage": "^0.8.2",
+    "typechain": "^8.1.0",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.10"
+
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.1"
+    "@openzeppelin/contracts": "^4.9.1",
+    "hardhat-deploy": "^0.11.30"
   }
 }

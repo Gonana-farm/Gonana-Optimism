@@ -18,6 +18,7 @@ library Errors{
     error Expired();
     error WrongFunctionCall();
     error WrongSignature();
+    error DoNotHaveGasSpent();
     
 
 

@@ -10,8 +10,8 @@ contract GonaToken is ERC20, Ownable {
         _mint(msg.sender, 1000000 * (10**decimals()));
     }
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    //event Transfer(address indexed from, address indexed to, uint256 value);
+    //event Approval(address indexed owner, address indexed spender, uint256 value);
 
 
     function mint(address account, uint256 amount) external onlyOwner {
