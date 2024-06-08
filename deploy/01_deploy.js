@@ -8,8 +8,8 @@ module.exports = async ({deployments, getNamedAccounts})=>{
     const {deployer} = await getNamedAccounts();
     log("----------------------------------------------------")
     const args = []
-
-    const contract = await deploy("GonaToken",{
+    console.log("deployer: ", deployer)
+    const contract = await deploy("Marketplace",{
         from : deployer,
         args: args,
         log: true,

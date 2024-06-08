@@ -24,7 +24,8 @@ module.exports = {
   
   etherscan : {
     apiKey : {
-      blast_sepolia: etherscan_api_key
+      blast_sepolia: etherscan_api_key,
+      "lisk-sepolia": etherscan_api_key,
     },
     customChains: [
       {
@@ -34,7 +35,15 @@ module.exports = {
           apiURL: "https://api.routescan.io/v2/network/testnet/evm/168587773/etherscan",
           browserURL: "https://testnet.blastscan.io"
         }
-      }
+      },
+      {
+        network: "lisk-sepolia",
+        chainId: 4202,
+        urls: {
+            apiURL: "https://sepolia-blockscout.lisk.com/api",
+            browserURL: "https://sepolia-blockscout.lisk.com"
+        }
+    }
     ]
   },
 
@@ -60,6 +69,11 @@ module.exports = {
       accounts: [sepolia_pk],
       blockConfirmations : 6,
       gasPrice: 5000000
+    },
+    'lisk-sepolia': {
+      url: 'https://rpc.sepolia-api.lisk.com',
+      accounts: [sepolia_pk],
+      gasPrice: 1000000000,
     },
   },
   gasReporter : {

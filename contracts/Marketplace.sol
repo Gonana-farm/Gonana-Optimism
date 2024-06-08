@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import {  Errors } from "./utils/Errors.sol";
-import {IBlast} from "./utils/Iblast.sol";
 
+
+// LISK ADDRESS: 0xc3E6E5147E23f904ab7Bc31EE760a3Ece5A068e0
 contract Marketplace {
 
     address private owner;
-    IBlast immutable blast = IBlast(0x4300000000000000000000000000000000000002);
+
 
     enum ProductState { Listed, Escrowed, Confirmed, Cancelled }
 
@@ -34,7 +35,6 @@ contract Marketplace {
 
     mapping(string => Product) public products;
     mapping(string => Order) public orders;
-    mapping(address => uint256) public gasSpent;
 
     Redeem[] claims ;
 
@@ -44,7 +44,6 @@ contract Marketplace {
     event ProductUnlisted(string productID);
     event OrderPlaced(string productID, uint256 amount, address buyer);
     event OrderConfirmed(string productID, address buyer);
-    event GasClaimed(uint256 indexed time, uint256 indexed amount);
 
    
 
@@ -57,9 +56,6 @@ contract Marketplace {
 
     constructor(){
         owner = msg.sender;
-        IBlast(0x4300000000000000000000000000000000000002).configureClaimableGas();
-        IBlast(0x4300000000000000000000000000000000000002).configureGovernor(address(this));
-
     }
 
     modifier onlySeller(string memory _productID) {
@@ -90,21 +86,19 @@ contract Marketplace {
         string memory _merchantID,
         address creator
     ) external onlyOwner {
-        if(products[_productID].wallet == address(0)){ revert Errors.ProductAlreadyExists();}
+        if(products[_productID].wallet != address(0)){ revert Errors.ProductAlreadyExists();}
         products[_productID] = Product(_productID, _amount, payable(creator), "", _merchantID, ProductState.Listed);
         _listProduct(_productID,"");
     }
 
     function _listProduct(string memory _productID, string memory _hash) internal {
-        //require(products[_productID].state == ProductState.Listed, InvalidProductState());
         products[_productID].hash = _hash;
         products[_productID].state = ProductState.Listed;
-        // emit ProductListed(_productID, products[_productID].amount, msg.sender);
         emit ProductListed(_productID, products[_productID].amount);
     }
 
     function unlistProduct(string memory _productID) external onlyOwner {
-        if(products[_productID].state == ProductState.Listed){ revert Errors.InvalidProductState();}
+        if(products[_productID].state != ProductState.Listed){ revert Errors.InvalidProductState();}
         products[_productID].state = ProductState.Cancelled;
         emit ProductUnlisted(_productID);
     }
@@ -125,9 +119,9 @@ contract Marketplace {
         string memory _buyerID
     ) external payable {
         //require(products[_productID], Errors.ProductNotFound());
-        if(products[_productID].state == ProductState.Listed) {revert Errors.InvalidProductState();}
+        if(products[_productID].state != ProductState.Listed) {revert Errors.InvalidProductState();}
         // ensure the value inputed is same as the product amount listed
-        if(products[_productID].amount == _amount){ revert Errors.InvalidPrice();}
+        if(products[_productID].amount != _amount){ revert Errors.InvalidPrice();}
         // ensure the value sent is the amount listed
         if(msg.value == _amount){ revert Errors.InsufficientFunds();}
 
@@ -135,15 +129,12 @@ contract Marketplace {
         products[_productID].state = ProductState.Escrowed;
         // escrow logic to hold funds until confirmed 
         //(transfer funds from the buyer to escrow account)
-        gasSpent[msg.sender] = tx.gasprice;
         emit OrderPlaced(_productID, _amount, msg.sender);
-        uint amount = claimAllGas();
-        emit GasClaimed(block.timestamp, amount);
     } 
 
     function confirmOrder(string memory _productID) external onlyOwner {
         //require(orders[_productID], Errors.OrderNotFound());
-        if(products[_productID].state == ProductState.Escrowed) {revert Errors.InvalidProductState();}
+        if(products[_productID].state != ProductState.Escrowed) {revert Errors.InvalidProductState();}
         //require(orders[_productID].paid, "No order placed");
 
         // logic to release funds in escrow account to seller
@@ -159,7 +150,7 @@ contract Marketplace {
 
     function cancelOrder(string memory _productID) external onlyBuyer(_productID) {
         //require(orders[_productID],  Errors.OrderNotFound);
-        if(products[_productID].state == ProductState.Escrowed) {revert Errors.InvalidProductState();}
+        if(products[_productID].state != ProductState.Escrowed) {revert Errors.InvalidProductState();}
 
         // ensure funds are in escrow account
         // require(orders[_productID].paid, "No order placed");
@@ -184,28 +175,5 @@ contract Marketplace {
         return products[_productID];
     }
 
-    function claimAllGas() public returns(uint amount) {
-	    // This function is public meaning anyone can claim the gas
-		amount = blast.claimAllGas(address(this), address(this));
-
-    }
-    
-    function redeemGas(address caller) external returns(bool sent) {
-        if (gasSpent[caller] == 0 ) {
-            revert Errors.DoNotHaveGasSpent();
-        }
-        claimAllGas();
-        uint256 amountDue = gasSpent[caller];
-        gasSpent[caller] = 0;
-        (sent,) = caller.call{value:amountDue}("");
-        if (!sent) {
-            revert Errors.TransacationWasNotSuccessful();
-        }
-
-    }
-
-    function checkGasDue()external view returns (uint amount){
-        (,amount,,) = blast.readGasParams(address(this));
-    }
 
 }

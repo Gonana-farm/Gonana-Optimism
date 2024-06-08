@@ -5,6 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+
+// LISK ADDRESS: 0x59738fc55D4286c4aDC9b7CF3Aa0efBa25d22d33
+
 contract GonaToken is ERC20, Ownable {
     constructor() ERC20("Gona", "GNA") {
         _mint(msg.sender, 1000000 * (10**decimals()));
